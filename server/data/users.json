@@ -1,0 +1,36 @@
+[
+  {
+    "id": "u_1771320026605",
+    "name": "Альбина",
+    "position": "Заместитель директора",
+    "telegramId": 702578735,
+    "telegramUsername": "@albinaerlankyzy"
+  },
+  {
+    "id": "u_1771320124996",
+    "name": "Noql",
+    "position": "Ведущий разработчик",
+    "telegramId": 465284922,
+    "telegramUsername": "@noQLx"
+  },
+  {
+    "id": "u_1771321346045",
+    "name": "Медет",
+    "position": "Аналитик",
+    "telegramId": 191188654,
+    "telegramUsername": "@medet_iskakov"
+  },
+  {
+    "id": "u_1771323238419",
+    "name": "Гульжан",
+    "position": "Менеджер проектов",
+    "telegramId": 117595226,
+    "telegramUsername": "@gulzhan_ysm"
+  },
+  {
+    "id": "u_1771328867066",
+    "name": "New User",
+    "position": "New Pos",
+    "telegramUsername": "@newuser"
+  }
+]
