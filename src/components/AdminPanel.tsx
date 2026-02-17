@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { User as UserIcon, ShieldCheck, Trash2, Edit2, Plus, Save, X, Settings } from 'lucide-react';
 import type { User } from '../types/user';
 import { cn } from '../lib/utils';
