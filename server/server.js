@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { initBot, getTaskButtons, sendToTeams } = require('./bot');
 const { readTodos, writeTodos, readUsers, writeUsers, getUserBySystemName } = require('./db');
 require('dotenv').config();
@@ -10,6 +11,7 @@ const PORT = 3001;
 // Init middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '../dist')));
 
 // Init Telegram Bot
 const bot = initBot();
@@ -148,6 +150,11 @@ app.delete('/api/users/:id', async (req, res) => {
     users = users.filter(u => u.id !== id);
     await writeUsers(users);
     res.json({ success: true });
+});
+
+// SPA Fallback
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
 app.listen(PORT, () => {
