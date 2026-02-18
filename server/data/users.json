@@ -52,6 +52,9 @@
     "name": "Алихан",
     "position": "Опер. директор",
     "telegramId": 320210843,
-    "telegramUsername": "@ajmagine"
+    "telegramUsername": "@ajmagine",
+    "username": "ajmagine",
+    "password": "$2b$10$f87SO3k96lCGpNKhfJIqte/TXAWnTSMzajZQFL4mkfatqSFUo5IIu",
+    "mustChangePassword": true
   }
 ]
