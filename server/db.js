@@ -1,5 +1,6 @@
 const fs = require('fs').promises;
 const path = require('path');
+const bcrypt = require('bcryptjs');
 
 const DATA_FILE = path.join(__dirname, 'data', 'todos.json');
 const USERS_FILE = path.join(__dirname, 'data', 'users.json');
@@ -36,10 +37,26 @@ async function getUserBySystemName(name) {
     return users.find(u => u.name === name);
 }
 
+async function findUserByUsername(username) {
+    const users = await readUsers();
+    return users.find(u => u.username === username);
+}
+
+async function hashPassword(password) {
+    return await bcrypt.hash(password, 10);
+}
+
+async function comparePassword(password, hash) {
+    return await bcrypt.compare(password, hash);
+}
+
 module.exports = {
     readTodos,
     writeTodos,
     readUsers,
     writeUsers,
-    getUserBySystemName
+    getUserBySystemName,
+    findUserByUsername,
+    hashPassword,
+    comparePassword
 };

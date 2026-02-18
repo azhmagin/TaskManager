@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User as UserIcon, ShieldCheck, Trash2, Edit2, Plus, Save, X, Settings } from 'lucide-react';
+import { User as UserIcon, ShieldCheck, Trash2, Edit2, Plus, Save, X, Settings, Key } from 'lucide-react';
 import type { User } from '../types/user';
 import { cn } from '../lib/utils';
 
@@ -14,8 +14,11 @@ export function AdminPanel({ users, onUsersChange, onClose }: AdminPanelProps) {
     const [editingId, setEditingId] = useState<string | null>(null);
 
     // Form States
-    const [formData, setFormData] = useState<Partial<User>>({
+    // We add password here locally as it's not part of the User type returned from API
+    const [formData, setFormData] = useState<Partial<User> & { password?: string }>({
         name: '',
+        username: '',
+        password: '',
         position: '',
         telegramId: undefined,
         telegramUsername: ''
@@ -25,6 +28,8 @@ export function AdminPanel({ users, onUsersChange, onClose }: AdminPanelProps) {
         setEditingId(user.id);
         setFormData({
             name: user.name,
+            username: user.username || '',
+            password: '', // Don't show existing password
             position: user.position || '',
             telegramId: user.telegramId,
             telegramUsername: user.telegramUsername || ''
@@ -33,39 +38,37 @@ export function AdminPanel({ users, onUsersChange, onClose }: AdminPanelProps) {
     };
 
     const handleSave = async () => {
-        console.log('Saving user:', formData);
-        if (!formData.name) {
-            console.error('Missing name');
+        if (!formData.name || !formData.username) {
+            alert('Name and Username are required');
             return;
         }
 
         try {
-            if (editingId) {
-                console.log('Updating existing user:', editingId);
-                await fetch(`http://localhost:3001/api/users/${editingId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
-                });
-            } else {
-                console.log('Creating new user');
-                await fetch('http://localhost:3001/api/users', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
-                });
-            }
+            const url = editingId
+                ? `/api/users/${editingId}`
+                : '/api/users';
+
+            const method = editingId ? 'PUT' : 'POST';
+
+            await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+
             onUsersChange();
             resetForm();
         } catch (err) {
             console.error('Failed to save user:', err);
+            alert('Failed to save user');
         }
     };
 
     const handleDelete = async (id: string) => {
-        // Removed confirm for now to unblock interaction
+        if (!confirm('Are you sure you want to delete this user?')) return;
+
         try {
-            await fetch(`http://localhost:3001/api/users/${id}`, {
+            await fetch(`/api/users/${id}`, {
                 method: 'DELETE'
             });
             onUsersChange();
@@ -77,7 +80,14 @@ export function AdminPanel({ users, onUsersChange, onClose }: AdminPanelProps) {
     const resetForm = () => {
         setEditingId(null);
         setIsAdding(false);
-        setFormData({ name: '', position: '', telegramId: undefined, telegramUsername: '' });
+        setFormData({
+            name: '',
+            username: '',
+            password: '',
+            position: '',
+            telegramId: undefined,
+            telegramUsername: ''
+        });
     };
 
     return (
@@ -125,6 +135,33 @@ export function AdminPanel({ users, onUsersChange, onClose }: AdminPanelProps) {
                                 />
                             </div>
                             <div>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">
+                                    Username (Логин)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.username}
+                                    onChange={e => setFormData({ ...formData, username: e.target.value })}
+                                    className="w-full p-2 bg-white border border-slate-200 rounded-lg focus:border-indigo-500 outline-none text-sm"
+                                    placeholder="ivan"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">
+                                    {editingId ? 'Новый пароль (оставьте пустым чтобы не менять)' : 'Пароль'}
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="password"
+                                        value={formData.password}
+                                        onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                        className="w-full p-2 pl-8 bg-white border border-slate-200 rounded-lg focus:border-indigo-500 outline-none text-sm"
+                                        placeholder="••••••"
+                                    />
+                                    <Key className="absolute left-2.5 top-2.5 text-slate-400 w-4 h-4" />
+                                </div>
+                            </div>
+                            <div>
                                 <label className="block text-xs font-medium text-slate-500 mb-1">Должность</label>
                                 <input
                                     type="text"
@@ -145,7 +182,7 @@ export function AdminPanel({ users, onUsersChange, onClose }: AdminPanelProps) {
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-slate-500 mb-1">Username</label>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">Telegram Username</label>
                                 <input
                                     type="text"
                                     value={formData.telegramUsername}
@@ -188,7 +225,10 @@ export function AdminPanel({ users, onUsersChange, onClose }: AdminPanelProps) {
                                     <UserIcon size={20} />
                                 </div>
                                 <div>
-                                    <h4 className="font-semibold text-slate-800 text-sm">{user.name}</h4>
+                                    <h4 className="font-semibold text-slate-800 text-sm">
+                                        {user.name}
+                                        <span className="ml-2 text-xs font-normal text-slate-400">@{user.username}</span>
+                                    </h4>
                                     <div className="flex items-center gap-2 text-xs text-slate-500">
                                         <span className="flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded">
                                             <ShieldCheck size={10} />

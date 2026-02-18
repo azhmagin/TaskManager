@@ -32,5 +32,12 @@
     "name": "New User",
     "position": "New Pos",
     "telegramUsername": "@newuser"
+  },
+  {
+    "id": "u_1771338372799",
+    "name": "Кайсар",
+    "position": "Разработчик",
+    "telegramId": 106689463,
+    "telegramUsername": "@Kays23"
   }
 ]

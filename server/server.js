@@ -1,12 +1,39 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const jwt = require('jsonwebtoken'); // Import JWT
 const { initBot, getTaskButtons, sendToTeams } = require('./bot');
-const { readTodos, writeTodos, readUsers, writeUsers, getUserBySystemName } = require('./db');
+const {
+    readTodos, writeTodos, readUsers, writeUsers, getUserBySystemName,
+    findUserByUsername, hashPassword, comparePassword
+} = require('./db');
 require('dotenv').config();
 
 const app = express();
 const PORT = 3001;
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-in-production'; // Secret for tokens
+
+// Bootstrap Admin User
+async function ensureAdminExists() {
+    const users = await readUsers();
+    if (users.length === 0) {
+        console.log('No users found. Creating default admin...');
+        const hashedPassword = await hashPassword('admin');
+        const adminUser = {
+            id: 'u_admin',
+            name: 'Administrator',
+            username: 'admin',
+            password: hashedPassword,
+            position: 'Admin',
+            telegramId: null,
+            telegramUsername: null
+        };
+        users.push(adminUser);
+        await writeUsers(users);
+        console.log('Default admin created: admin / admin');
+    }
+}
+ensureAdminExists();
 
 // Init middleware
 app.use(cors());
@@ -15,6 +42,21 @@ app.use(express.static(path.join(__dirname, '../dist')));
 
 // Init Telegram Bot
 const bot = initBot();
+
+// Auth API
+app.post('/api/login', async (req, res) => {
+    const { username, password } = req.body;
+    const user = await findUserByUsername(username);
+
+    if (!user || !(await comparePassword(password, user.password))) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+    // Don't send password back
+    const { password: _, ...userWithoutPassword } = user;
+    res.json({ token, user: userWithoutPassword });
+});
 
 // REST API
 app.get('/api/todos', async (req, res) => {
@@ -122,7 +164,13 @@ app.get('/api/users', async (req, res) => {
 });
 
 app.post('/api/users', async (req, res) => {
-    const newUser = { id: `u_${Date.now()}`, ...req.body };
+    const { password, ...userData } = req.body;
+    const hashedPassword = password ? await hashPassword(password) : await hashPassword('123456'); // Default password if empty
+    const newUser = {
+        id: `u_${Date.now()}`,
+        password: hashedPassword,
+        ...userData
+    };
     const users = await readUsers();
     users.push(newUser);
     await writeUsers(users);
@@ -131,12 +179,16 @@ app.post('/api/users', async (req, res) => {
 
 app.put('/api/users/:id', async (req, res) => {
     const { id } = req.params;
-    const updates = req.body;
+    const { password, ...updates } = req.body;
     const users = await readUsers();
     const index = users.findIndex(u => u.id === id);
 
     if (index !== -1) {
-        users[index] = { ...users[index], ...updates };
+        let updatedUser = { ...users[index], ...updates };
+        if (password) {
+            updatedUser.password = await hashPassword(password);
+        }
+        users[index] = updatedUser;
         await writeUsers(users);
         res.json(users[index]);
     } else {
