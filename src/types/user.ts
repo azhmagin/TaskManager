@@ -6,4 +6,5 @@ export interface User {
     telegramUsername?: string;
     avatar?: string;
     position?: string;
+    mustChangePassword?: boolean;
 }

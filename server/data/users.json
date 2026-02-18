@@ -46,5 +46,12 @@
     "username": "admin",
     "password": "$2b$10$f87SO3k96lCGpNKhfJIqte/TXAWnTSMzajZQFL4mkfatqSFUo5IIu",
     "position": "Admin"
+  },
+  {
+    "id": "u_1771393682915",
+    "name": "Алихан",
+    "position": "Опер. директор",
+    "telegramId": 320210843,
+    "telegramUsername": "@ajmagine"
   }
 ]

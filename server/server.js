@@ -58,6 +58,35 @@ app.post('/api/login', async (req, res) => {
     res.json({ token, user: userWithoutPassword });
 });
 
+app.post('/api/change-password', async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+
+    const token = authHeader.split(' ')[1];
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const { newPassword } = req.body;
+        
+        if (!newPassword || newPassword.length < 6) {
+             return res.status(400).json({ error: 'Password must be at least 6 characters' });
+        }
+
+        const users = await readUsers();
+        const index = users.findIndex(u => u.id === decoded.id);
+        
+        if (index !== -1) {
+            users[index].password = await hashPassword(newPassword);
+            users[index].mustChangePassword = false;
+            await writeUsers(users);
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ error: 'User not found' });
+        }
+    } catch (err) {
+        res.status(401).json({ error: 'Invalid token' });
+    }
+});
+
 // REST API
 app.get('/api/todos', async (req, res) => {
     const todos = await readTodos();
