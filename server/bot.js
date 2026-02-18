@@ -81,6 +81,22 @@ function initBot() {
 
     bot = new TelegramBot(token, { polling: true });
 
+    // Set commands for the menu button
+    bot.setMyCommands([
+        { command: '/start', description: 'Запуск и регистрация' },
+        { command: '/new', description: 'Создать новую задачу' },
+        { command: '/help', description: 'Список команд' }
+    ]);
+
+    const mainMenuKeyboard = {
+        reply_markup: {
+            keyboard: [
+                [{ text: '📝 Новая задача' }]
+            ],
+            resize_keyboard: true
+        }
+    };
+
     // Handle /start
     bot.onText(/\/start/, async (msg) => {
         const chatId = msg.chat.id;
@@ -90,11 +106,28 @@ function initBot() {
         const user = users.find(u => u.telegramId === tgId);
 
         if (user) {
-            bot.sendMessage(chatId, `👋 Привет, ${user.name}! Вы уже зарегистрированы.\n\nКоманды:\n/new - Создать новую задачу`);
+            bot.sendMessage(chatId, `👋 Привет, ${user.name}! Вы уже зарегистрированы.\n\nИспользуйте меню для работы.`, mainMenuKeyboard);
         } else {
             userState.set(tgId, { step: 'NAME', chat_id: chatId, username: msg.from.username });
             bot.sendMessage(chatId, `👋 Добро пожаловать! Как вас зовут? Этим именем вы будете подписаны в системе.`);
         }
+    });
+
+    // Handle /help
+    bot.onText(/\/help/, (msg) => {
+        const helpText = `
+🤖 *Список команд:*
+
+/new или кнопка *📝 Новая задача* - Создать задачу
+/start - Перезапуск бота
+/help - Эта справка
+
+*Как создать задачу:*
+1. Нажмите "📝 Новая задача"
+2. Введите текст задачи
+3. Выберите исполнителя
+`;
+        bot.sendMessage(msg.chat.id, helpText, { parse_mode: 'Markdown' });
     });
 
     // Handle /new (Create Task)
@@ -111,7 +144,7 @@ function initBot() {
         }
 
         userState.set(tgId, { step: 'CREATE_TEXT' });
-        bot.sendMessage(chatId, '📝 Введите текст новой задачи:');
+        bot.sendMessage(chatId, '📝 Введите текст новой задачи:', { reply_markup: { remove_keyboard: true } });
     });
 
     // Handle Messages (Registration, Reports, Task Creation)
@@ -123,7 +156,27 @@ function initBot() {
         // Skip commands
         if (text && text.startsWith('/')) return;
 
-        if (!userState.has(userId)) return;
+        // Handle Menu Button "📝 Новая задача"
+        if (text === '📝 Новая задача') {
+            const users = await readUsers();
+            const user = users.find(u => u.telegramId === userId);
+
+            if (!user) {
+                bot.sendMessage(chatId, '⛔️ Сначала зарегистрируйтесь через /start');
+                return;
+            }
+
+            userState.set(userId, { step: 'CREATE_TEXT' });
+            bot.sendMessage(chatId, '📝 Введите текст новой задачи:', { reply_markup: { remove_keyboard: true } });
+            return;
+        }
+
+        if (!userState.has(userId)) {
+            // If user types random text, maybe remind them of the menu?
+            // Only if they are registered.
+            // Let's not spam.
+            return;
+        }
 
         const state = userState.get(userId);
 
@@ -150,7 +203,18 @@ function initBot() {
             users.push(newUser);
             await writeUsers(users);
 
-            bot.sendMessage(chatId, `✅ Регистрация завершена!\n*${newUser.name}* (${newUser.position})\nТеперь вы можете работать с задачами.`, { parse_mode: 'Markdown' });
+            const mainMenuKeyboard = {
+                reply_markup: {
+                    keyboard: [
+                        [{ text: '📝 Новая задача' }]
+                    ],
+                    resize_keyboard: true
+                }
+            };
+            bot.sendMessage(chatId, `✅ Регистрация завершена!\n*${newUser.name}* (${newUser.position})\nТеперь вы можете работать с задачами.`, {
+                parse_mode: 'Markdown',
+                ...mainMenuKeyboard
+            });
             return;
         }
 
@@ -269,8 +333,21 @@ function initBot() {
                 await writeTodos(todos);
                 userState.delete(tgId);
 
+                // Restore Main Menu
+                const mainMenuKeyboard = {
+                    reply_markup: {
+                        keyboard: [
+                            [{ text: '📝 Новая задача' }]
+                        ],
+                        resize_keyboard: true
+                    }
+                };
+
                 bot.deleteMessage(chatId, messageId); // Remove keyboard
-                bot.sendMessage(chatId, `✅ Задача создана!\n*${newTodo.text}*\n👤 Исполнитель: ${assigneeName}`, { parse_mode: 'Markdown' });
+                bot.sendMessage(chatId, `✅ Задача создана!\n*${newTodo.text}*\n👤 Исполнитель: ${assigneeName}`, {
+                    parse_mode: 'Markdown',
+                    ...mainMenuKeyboard
+                });
 
                 // Notify Assignee
                 if (assigneeUser && assigneeUser.telegramId) {
