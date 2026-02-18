@@ -39,5 +39,12 @@
     "position": "Разработчик",
     "telegramId": 106689463,
     "telegramUsername": "@Kays23"
+  },
+  {
+    "id": "u_admin",
+    "name": "Administrator",
+    "username": "admin",
+    "password": "$2b$10$f87SO3k96lCGpNKhfJIqte/TXAWnTSMzajZQFL4mkfatqSFUo5IIu",
+    "position": "Admin"
   }
 ]
